@@ -661,7 +661,10 @@ describe('Test polar interactions:', function() {
         gd = createGraphDiv();
     });
 
-    afterEach(destroyGraphDiv);
+    afterEach(function() {
+        Plotly.purge(gd);
+        destroyGraphDiv();
+    });
 
     function _plot(fig) {
         return Plotly.newPlot(gd, fig).then(function() {
