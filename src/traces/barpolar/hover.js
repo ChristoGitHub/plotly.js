@@ -9,59 +9,56 @@
 'use strict';
 
 var barHover = require('../bar/hover');
+var makeHoverPointText = require('../scatterpolar/hover').makeHoverPointText;
 var Axes = require('../../plots/cartesian/axes');
+var Fx = require('../../components/fx');
 var Lib = require('../../lib');
 
-function hoverPoints(pointData, xval, yval, hovermode) {
-    // TODO might need a seperate hoverPoints in r/theta space
-    var barPointData = barHover(pointData, xval, yval, hovermode);
-    if(!barPointData || barPointData[0].index === false) return;
-
-    var newPointData = barPointData[0];
+module.exports = function hoverPoints(pointData, xval, yval, hovermode) {
+    var cd = pointData.cd;
+    var trace = cd[0].trace;
+    var t = cd[0].t;
 
     var subplot = pointData.subplot;
-    var cdi = newPointData.cd[newPointData.index];
-    var trace = newPointData.trace;
-
-    newPointData.xLabelVal = undefined;
-    newPointData.yLabelVal = undefined;
-    newPointData.extraText = makeHoverPointText(cdi, trace, subplot);
-
-    return barPointData;
-}
-
-function makeHoverPointText(cdi, trace, subplot) {
     var radialAxis = subplot.radialAxis;
     var angularAxis = subplot.angularAxis;
-    var hoverinfo = cdi.hi || trace.hoverinfo;
-    var parts = hoverinfo.split('+');
-    var text = [];
+    var xa = subplot.xaxis;
+    var ya = subplot.yaxis;
 
-    radialAxis._hovertitle = 'r';
-    angularAxis._hovertitle = 'θ';
+    var rVal = Math.sqrt(xval * xval + yval * yval);
+    var thetaVal = Math.atan2(yval, xval);
 
-    var rad = angularAxis._c2rad(cdi.theta, trace.thetaunit);
+    var distFn = function(di) {
+        var rg = radialAxis.c2g(di.s);
+        var thetag = angularAxis.c2g(Lib.deg2rad(Lib.wrap180(Lib.rad2deg(di.theta))));
+        // console.log(di.p, rg, rVal)
 
-    // show theta value in unit of angular axis
-    var theta;
-    if(angularAxis.type === 'linear' && trace.thetaunit !== angularAxis.thetaunit) {
-        theta = angularAxis.thetaunit === 'degrees' ? Lib.rad2deg(rad) : rad;
-    } else {
-        theta = cdi.theta;
-    }
+        return Fx.inbox(rg - rVal, rVal - rg, 1)
+    };
 
-    function textPart(ax, val) {
-        text.push(ax._hovertitle + ': ' + Axes.tickText(ax, val, 'hover').text);
-    }
+    Fx.getClosest(cd, distFn, pointData);
 
-    if(parts.indexOf('all') !== -1) parts = ['r', 'theta'];
-    if(parts.indexOf('r') !== -1) textPart(radialAxis, radialAxis.c2r(cdi.r));
-    if(parts.indexOf('theta') !== -1) textPart(angularAxis, theta);
+    // console.log(pointData.index)
 
-    return text.join('<br>');
-}
+    // skip the rest (for this trace) if we didn't find a close point
+    if(pointData.index === false) return;
 
-module.exports = {
-    hoverPoints: hoverPoints,
-    makeHoverPointText: makeHoverPointText
+    var index = pointData.index;
+    var cdi = cd[index];
+
+    var rg = radialAxis.c2g(cdi.s);
+    var thetag = angularAxis.c2g(cdi.p);
+    var xp = xa.c2p(rg * Math.cos(thetag));
+    var yp = ya.c2p(rg * Math.sin(thetag));
+
+    pointData.x0 = pointData.x1 = xp;
+    pointData.y0 = pointData.y1 = yp;
+
+    console.log(xp, yp)
+
+    pointData.xLabelVal = undefined;
+    pointData.yLabelVal = undefined;
+    pointData.extraText = makeHoverPointText(cdi, trace, subplot);
+
+    return [pointData];
 };
