@@ -39,9 +39,9 @@ case $1 in
         # to reduce number of intermittent failures
         files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js)))
         for f in ${files[@]}; do
-            retry npm run test-jasmine -- --tags=gl --skip-tags=noCI $f
+            retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky $f
         done
-        retry npm run test-jasmine -- --tags=flaky --skip-tags=noCI,gl
+        retry npm run test-jasmine -- --tags=flaky --skip-tags=noCI
         exit $EXIT_STATE
         ;;
 
