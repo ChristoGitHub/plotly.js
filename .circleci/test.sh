@@ -37,7 +37,7 @@ case $1 in
     jasmine2)
         # split @gl specs into two runs,
         # to reduce number of intermittent failures
-        files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js)))
+        files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js) | shuf))
         len=${#files[@]}
         mid=$(($len / 2))
 
