@@ -4,6 +4,7 @@
 set +e
 set +o pipefail
 
+ROOT=$(dirname $0)/..
 EXIT_STATE=0
 MAX_AUTO_RETRY=5
 
@@ -34,7 +35,14 @@ case $1 in
         ;;
 
     jasmine2)
-        retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky
+        # split @gl specs into two runs,
+        # to reduce number of intermittent failures
+        files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js)))
+        len=${#files[@]}
+        mid=$(($len / 2))
+
+        retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky ${files[@]:0:$mid}
+        retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky ${files[@]:$mid:$len}
         retry npm run test-jasmine -- --tags=flaky --skip-tags=noCI
         exit $EXIT_STATE
         ;;
