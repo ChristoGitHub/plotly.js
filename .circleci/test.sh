@@ -35,15 +35,13 @@ case $1 in
         ;;
 
     jasmine2)
-        # split @gl specs into two runs,
+        # split @gl specs into multiple runs, one per file,
         # to reduce number of intermittent failures
-        files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js) | shuf))
-        len=${#files[@]}
-        mid=$(($len / 2))
-
-        retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky ${files[@]:0:$mid}
-        retry npm run test-jasmine -- --tags=gl --skip-tags=noCI,flaky ${files[@]:$mid:$len}
-        retry npm run test-jasmine -- --tags=flaky --skip-tags=noCI
+        files=($(basename -a $(grep -l @gl $ROOT/test/jasmine/tests/*.js)))
+        for f in ${files[@]}; do
+            retry npm run test-jasmine -- --tags=gl --skip-tags=noCI $f
+        done
+        retry npm run test-jasmine -- --tags=flaky --skip-tags=noCI,gl
         exit $EXIT_STATE
         ;;
 
